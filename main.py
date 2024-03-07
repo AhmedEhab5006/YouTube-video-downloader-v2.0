@@ -4,21 +4,97 @@ from customtkinter import *
 import customtkinter 
 from pytube import YouTube
 from tkinter import messagebox as msg
+import os
+from customtkinter import filedialog
+import time
+import threading
+
 
 
 link = " " #creating a variable to store video's link
 videoName = " " #creating a variable to store video's name
- #creating a variable to store video's stream
+path = " " #creating a variable to store the path of the video
+
+
 
 
 
 root = CTk () #creating the root window
+setAudio = BooleanVar() #creating a variable to store whether the audio is set or not
+
+
+#creating function which shows the progress of the download
+def on_progress (stream , chunk , bytes_remaining) :
+    global progressBar , video
+    stream = video
+    total_size = stream.filesize
+    bytes_downloaded = total_size - bytes_remaining
+    percentage_of_comp = bytes_downloaded / total_size *100
+    time.sleep(0.3)
+    progressBar.set(float(percentage_of_comp)/100)
+    root.update()
+
+
+#creating the function which downloads the video
+def Download ():
+    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly
+    if setAudio.get() == 0:
+        try :
+            video = yt.streams.filter(res = quality.get()).first()
+            backButton._fg_color = "grey"
+            backButton._state = DISABLED
+            progressBar = CTkProgressBar(root , width = 300, height = 20)
+            downloading = CTkLabel(root , text = "Downloading" , text_color="white" , font=("Times New Roman", 15, "bold") )
+            downloading.place(x = 210, y = 360)
+            progressBar.place(x = 100, y = 400)
+            progressBar.set(0.0)
+            videoName = str(video.default_filename)
+            path = filedialog.asksaveasfilename(filetypes=[("Video", ".mp4")], confirmoverwrite=True,
+                                        defaultextension=".mp4", title='Choose where to save video',
+                                        initialfile=os.path.basename(os.path.abspath(videoName)))
+                                        
+            downloadButton._state = DISABLED
+            audioOnly._state = DISABLED
+            quality.configure(state = DISABLED)
+            pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
+            pauseButton.place(x = 100, y = 440)
+            cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15) , width=100 )
+            cancelButton.place(x = 300, y = 440)
+            video.download(path)
+            pauseButton.destroy()
+            cancelButton.destroy()
+            downloadButton._state = NORMAL
+            audioOnly._state = NORMAL
+            quality.configure(state = NORMAL)
+            downloading.destroy()
+            done = CTkLabel(root , text = "Download Completed!" , text_color="green" , font=("Times New Roman", 15, "bold") )
+            done.place(x = 190, y = 360)
+            backButton._fg_color = "#146F86"
+            backButton._state = NORMAL
+        except :
+            msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
+            
+
+
+#making a thread for download function to avoid overloading        
+def downloadThreading ():
+    t = threading.Thread(target=Download)
+    t.start()
+
+
+#creating function which selects audio only
+def audio() :
+    global quality , setAudio , audioOnly
+    if setAudio.get() == 1:
+            quality.configure(state = DISABLED)
+    else :
+        quality.configure(state = NORMAL)
 
 
 
 #creatung function which creates the download tab
 def downloadTab():
-    global linkEntry , youtubeLogo , titleLabel , downloadButton , backButton , videoName , videoNameLabel , streams , quality
+    global linkEntry , youtubeLogo , titleLabel , downloadButton , backButton , videoName , videoNameLabel , streams , quality , setAudio ,audioOnly , audioOnlyText , downloadButton
     blank_label = customtkinter.CTkLabel(root, text="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text_color="#242424")
     blank_label.place(x=190, y=440)
     youtubeLogo.destroy()
@@ -30,19 +106,36 @@ def downloadTab():
     youtubeLogoImage = PhotoImage(file="Elements\\youtube.png")
     youtubeLogo = CTkLabel(root, image=youtubeLogoImage , text = " ")
     youtubeLogo.place(x=119, y=40)
+    
+    #to take a new line if the video name is too long to avoid bugs
+    if len(videoName) > 40 :
+        videoName = videoName[:40] + "\n" + videoName[40:]
+    
     videoNameLabel = CTkLabel(root, text = videoName  ,  text_color="white" , font=("Times New Roman", 15))
     videoNameLabel.place(x=35, y=250)
     stream = list(streams)
     quality = customtkinter.CTkOptionMenu(master = root , values = stream , width = 50  )
     quality.place(x=330, y=250)
+    audioOnlyText = CTkLabel(root, text = "Audio Only" , text_color="white" , font=("Times New Roman", 15))
+    audioOnlyText.place(x=400, y=220)
+    audioOnly = customtkinter.CTkCheckBox(master = root , text = " " , width = 10 , height = 1 , state = "normal" , command = audio , variable = setAudio )
+    audioOnly.place(x=420, y=250)
+    downloadButton = customtkinter.CTkButton(root , text="Download" , text_color="white" ,fg_color="green" , font=("Times New Roman", 15, "bold") , command = downloadThreading , width=150 )
+    downloadButton.place(x=187, y=500)
     
     #creating function which back to the main tab
     def back():
-        global  youtubeLogo , titleLabel ,videoNameLabel
+        global  youtubeLogo , titleLabel ,videoNameLabel , backButton 
         titleLabel.destroy()
         youtubeLogo.destroy()
         videoNameLabel.destroy()
         quality.destroy()
+        audioOnlyText.destroy()
+        audioOnly.destroy()
+        downloadButton.destroy()
+        progressBar.destroy()
+        downloading.destroy()
+        done.destroy()
         mainTab()
         backButton.destroy()
     backButton = CTkButton(root, text="Back", font=("Times New Roman", 15, "bold") , width=50 , command=back)
@@ -52,7 +145,7 @@ def downloadTab():
 
 #creating function which stores video's link and then redirects to the download tab
 def Entry ():
-    global link , linkEntry , videoName , streams 
+    global link , linkEntry , videoName , streams , yt
     link = linkEntry.get()
     if link == "":
         errorLabel = CTkLabel(root, text = "Please enter a link" , text_color="red" , font=("Times New Roman", 17, "bold") )
@@ -64,9 +157,7 @@ def Entry ():
         errorLabel.place(x=218, y=440)
     else :
         try :
-            #blank_label = customtkinter.CTkLabel(root, text="please wait....", text_color="white")
-            #blank_label.place(x=190, y=440)
-            yt = YouTube(link)
+            yt = YouTube(link , on_progress_callback = on_progress)
             yt.streams.get_lowest_resolution()
             video = yt.streams.get_lowest_resolution()
             videoName = str(video.default_filename)
@@ -76,8 +167,8 @@ def Entry ():
             downloadTab()  
         except:
             msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection or the video may be unavailable)")
+
                
-       
 
 
 #creating function which creates the main window of the app       
