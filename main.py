@@ -8,6 +8,9 @@ import os
 from customtkinter import filedialog
 import time
 import threading
+from pathlib import Path
+import shutil
+
 
 
 
@@ -37,42 +40,96 @@ def on_progress (stream , chunk , bytes_remaining) :
 
 #creating the function which downloads the video
 def Download ():
-    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly
+    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly ,  temp_download_path
+    
+    
+    #knowing if user chose to download audio or video
     if setAudio.get() == 0:
         try :
             video = yt.streams.filter(res = quality.get()).first()
-            backButton._fg_color = "grey"
-            backButton._state = DISABLED
-            progressBar = CTkProgressBar(root , width = 300, height = 20)
-            downloading = CTkLabel(root , text = "Downloading" , text_color="white" , font=("Times New Roman", 15, "bold") )
-            downloading.place(x = 210, y = 360)
-            progressBar.place(x = 100, y = 400)
-            progressBar.set(0.0)
-            videoName = str(video.default_filename)
-            path = filedialog.asksaveasfilename(filetypes=[("Video", ".mp4")], confirmoverwrite=True,
+            videoName = str(video.default_filename) 
+        except :
+            msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")    
+        path = filedialog.asksaveasfilename(filetypes=[("Video", ".mp4")], confirmoverwrite=True,
                                         defaultextension=".mp4", title='Choose where to save video',
                                         initialfile=os.path.basename(os.path.abspath(videoName)))
-                                        
-            downloadButton._state = DISABLED
-            audioOnly._state = DISABLED
-            quality.configure(state = DISABLED)
-            pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
-            pauseButton.place(x = 100, y = 440)
-            cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15) , width=100 )
-            cancelButton.place(x = 300, y = 440)
-            video.download(path)
-            pauseButton.destroy()
-            cancelButton.destroy()
-            downloadButton._state = NORMAL
-            audioOnly._state = NORMAL
-            quality.configure(state = NORMAL)
-            downloading.destroy()
-            done = CTkLabel(root , text = "Download Completed!" , text_color="green" , font=("Times New Roman", 15, "bold") )
-            done.place(x = 190, y = 360)
-            backButton._fg_color = "#146F86"
-            backButton._state = NORMAL
+    if setAudio.get() == 1:
+        try :
+            video = yt.streams.filter(only_audio = True).first()
+            videoName = str(video.default_filename)
+            temp_download_path = os.path.join(Path.home(), "Downloads", videoName)  
         except :
             msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
+        path = filedialog.asksaveasfilename(filetypes=[("Audio", ".mp3")], confirmoverwrite=True,
+                                        defaultextension=".mp3", title='Choose where to save video',
+                                         initialfile=os.path.splitext(os.path.basename(videoName))[0] + ".mp3")
+        
+
+    
+    #disabliing donwload , back , quailty and audio buttons when download starts
+    backButton._fg_color = "grey"
+    backButton._state = DISABLED
+    progressBar = CTkProgressBar(root , width = 300, height = 20)
+    blank_label = customtkinter.CTkLabel(root, text="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text_color="#242424")
+    blank_label.place(x=190, y=360)
+    downloading = CTkLabel(root , text = "Downloading" , text_color="white" , font=("Times New Roman", 15, "bold") )
+    downloading.place(x = 210, y = 360)
+    progressBar.place(x = 100, y = 400)
+    progressBar.set(0.0)                           
+    downloadButton._state = DISABLED
+    downloadButton._fg_color = "grey"
+    audioOnly._state = DISABLED
+    quality.configure(state = DISABLED)
+    pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
+    pauseButton.place(x = 100, y = 440)
+    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15) , width=100 )
+    cancelButton.place(x = 300, y = 440)
+    
+    
+    
+    #starting the download
+    try :
+        video.download()
+        
+        
+        #if user didn't choose to download audio the video is donwloaded in app folder then we move it to selected path
+        if audioOnly.get() == 0:
+            shutil.move(videoName, path)
+        
+        
+        #if user chose to download audio the video is donwloaded in app folder then we convert it to mp3 file and move it to selected path
+        if audioOnly.get() == 1:
+            base, ext = os.path.splitext(videoName)
+            new_file = os.path.join(os.path.basename(base) + '.mp3')
+            os.rename(videoName, new_file)
+            shutil.move(new_file, path)    
+    
+    
+    #if any error ocuurred while downloading we pop up this message
+    except :
+        msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
+    
+    
+    #destroying pause and cancel buttons when download is completed
+    pauseButton.destroy()
+    cancelButton.destroy()
+    
+    #returning donwload , back , quailty and audio buttons to the normal state when download is done
+    downloadButton._state = NORMAL
+    downloadButton._fg_color = "green"
+    audioOnly._state = NORMAL
+    quality.configure(state = NORMAL)
+    backButton._fg_color = "#146F86"
+    backButton._state = NORMAL
+    
+    #destroying downloading label and creating done label when download is completed
+    downloading.destroy()
+    done = CTkLabel(root , text = "Download Completed!" , text_color="green" , font=("Times New Roman", 15, "bold") )
+    done.place(x = 190, y = 360)
+    
+        
+    
+       
             
 
 
@@ -125,7 +182,7 @@ def downloadTab():
     
     #creating function which back to the main tab
     def back():
-        global  youtubeLogo , titleLabel ,videoNameLabel , backButton 
+        global  youtubeLogo , titleLabel ,videoNameLabel , backButton , progressBar
         titleLabel.destroy()
         youtubeLogo.destroy()
         videoNameLabel.destroy()
