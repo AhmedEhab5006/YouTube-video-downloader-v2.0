@@ -24,8 +24,29 @@ path = " " #creating a variable to store the path of the video
 
 root = CTk () #creating the root window
 setAudio = BooleanVar() #creating a variable to store whether the audio is set or not
+isCanceled = False #creating a variable to store whether the download is canceled or not
+completed = False #creating a variable to store whether the download is completed or not
 
-
+def cancel ():
+    global isCanceled , downloadButton , downloading , pauseButton , cancelButton , progressBar , backButton , audioOnly , quality , setAudio , completed
+    isCanceled = True
+    canceleingLabel = CTkLabel(root, text = "Cancelling..." , text_color="yellow" , font=("Times New Roman", 15, "bold") )
+    canceleingLabel.place(x = 215, y = 360)
+    if completed : 
+        canceledLabel = CTkLabel(root, text = "Download Canceled!" , text_color="red" , font=("Times New Roman", 15, "bold") )
+        canceledLabel.place(x = 190, y = 360)
+    progressBar.set(0.0)
+    downloading.destroy()
+    #pauseButton.destroy()
+    progressBar.destroy()
+    #cancelButton.destroy()
+    #downloadButton._state = NORMAL
+    #downloadButton._fg_color = "green"
+    #audioOnly._state = NORMAL
+    #quality.configure(state = NORMAL)
+    #backButton._fg_color = "#146F86"
+    #backButton._state = NORMAL
+    
 #creating function which shows the progress of the download
 def on_progress (stream , chunk , bytes_remaining) :
     global progressBar , video
@@ -34,20 +55,23 @@ def on_progress (stream , chunk , bytes_remaining) :
     bytes_downloaded = total_size - bytes_remaining
     percentage_of_comp = bytes_downloaded / total_size *100
     time.sleep(0.3)
-    progressBar.set(float(percentage_of_comp)/100)
-    root.update()
+    if progressBar :
+        progressBar.set(float(percentage_of_comp)/100)
+        root.update()
+    
 
 
 #creating the function which downloads the video
 def Download ():
-    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly ,  temp_download_path
+    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly ,  temp_download_path , pauseButton , cancelButton , isCanceled , completed
+    
     
     
     #knowing if user chose to download audio or video
     if setAudio.get() == 0:
         try :
             video = yt.streams.filter(res = quality.get()).first()
-            videoName = str(video.default_filename) 
+            videoName = str(video.default_filename)
         except :
             msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")    
         path = filedialog.asksaveasfilename(filetypes=[("Video", ".mp4")], confirmoverwrite=True,
@@ -75,57 +99,78 @@ def Download ():
     downloading = CTkLabel(root , text = "Downloading" , text_color="white" , font=("Times New Roman", 15, "bold") )
     downloading.place(x = 210, y = 360)
     progressBar.place(x = 100, y = 400)
-    progressBar.set(0.0)                           
+    if progressBar :
+        progressBar.set(0.0)                           
     downloadButton._state = DISABLED
     downloadButton._fg_color = "grey"
     audioOnly._state = DISABLED
     quality.configure(state = DISABLED)
     pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
     pauseButton.place(x = 100, y = 440)
-    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15) , width=100 )
+    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15 , "bold") , width=100 , command = cancel )
     cancelButton.place(x = 300, y = 440)
     
     
     
     #starting the download
-    try :
+    #try :
+        
+    if isCanceled == False:
         video.download()
+        completed = True
+                
         
-        
-        #if user didn't choose to download audio the video is donwloaded in app folder then we move it to selected path
-        if audioOnly.get() == 0:
-            shutil.move(videoName, path)
-        
-        
-        #if user chose to download audio the video is donwloaded in app folder then we convert it to mp3 file and move it to selected path
-        if audioOnly.get() == 1:
-            base, ext = os.path.splitext(videoName)
-            new_file = os.path.join(os.path.basename(base) + '.mp3')
-            os.rename(videoName, new_file)
-            shutil.move(new_file, path)    
+        if isCanceled:
+            if os.path.exists(videoName):
+                os.remove(videoName)
+               
+                     
     
+        #if user didn't choose to download audio the video is donwloaded in app folder then we move it to selected path
+        if isCanceled == False:
+            if audioOnly.get() == 0:
+                shutil.move(videoName, path)
+        
+        
+            #if user chose to download audio the video is donwloaded in app folder then we convert it to mp3 file and move it to selected path
+            if audioOnly.get() == 1:
+                base, ext = os.path.splitext(videoName)
+                new_file = os.path.join(os.path.basename(base) + '.mp3')
+                os.rename(videoName, new_file)
+                shutil.move(new_file, path)
+       
     
     #if any error ocuurred while downloading we pop up this message
-    except :
-        msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
+    #except :
+        #msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
     
     
     #destroying pause and cancel buttons when download is completed
-    pauseButton.destroy()
-    cancelButton.destroy()
+    if pauseButton :
+        pauseButton.destroy()
+        pauseButton = None 
+    if cancelButton :
+        cancelButton.destroy()
+        cancelButton = None
     
     #returning donwload , back , quailty and audio buttons to the normal state when download is done
-    downloadButton._state = NORMAL
-    downloadButton._fg_color = "green"
-    audioOnly._state = NORMAL
-    quality.configure(state = NORMAL)
-    backButton._fg_color = "#146F86"
-    backButton._state = NORMAL
+    if downloadButton :
+        downloadButton._state = NORMAL
+        downloadButton._fg_color = "green"
+    if audioOnly :
+        audioOnly._state = NORMAL
+    if quality :
+        quality.configure(state = NORMAL)
+    if backButton :
+        backButton._fg_color = "#146F86"
+        backButton._state = NORMAL
     
     #destroying downloading label and creating done label when download is completed
-    downloading.destroy()
-    done = CTkLabel(root , text = "Download Completed!" , text_color="green" , font=("Times New Roman", 15, "bold") )
-    done.place(x = 190, y = 360)
+    if downloading :
+        downloading.destroy()
+    if isCanceled == False:
+        done = CTkLabel(root , text = "Download Completed!" , text_color="green" , font=("Times New Roman", 15, "bold") )
+        done.place(x = 190, y = 360)
     
         
     
@@ -135,10 +180,15 @@ def Download ():
 
 #making a thread for download function to avoid overloading        
 def downloadThreading ():
+    global t , isCanceled
     t = threading.Thread(target=Download)
     t.start()
+    if isCanceled :
+        sys.exit()
+        
 
 
+    
 #creating function which selects audio only
 def audio() :
     global quality , setAudio , audioOnly
@@ -167,6 +217,8 @@ def downloadTab():
     #to take a new line if the video name is too long to avoid bugs
     if len(videoName) > 40 :
         videoName = videoName[:40] + "\n" + videoName[40:]
+    if len(videoName) > 80 :
+        videoName = videoName[:80] + "\n" + videoName[80:]
     
     videoNameLabel = CTkLabel(root, text = videoName  ,  text_color="white" , font=("Times New Roman", 15))
     videoNameLabel.place(x=35, y=250)
