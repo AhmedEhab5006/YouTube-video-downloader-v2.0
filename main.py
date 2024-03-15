@@ -8,6 +8,9 @@ import os
 from customtkinter import filedialog
 import time
 import threading
+from pathlib import Path
+import shutil
+
 
 
 
@@ -21,29 +24,8 @@ path = " " #creating a variable to store the path of the video
 
 root = CTk () #creating the root window
 setAudio = BooleanVar() #creating a variable to store whether the audio is set or not
-isCanceled = False #creating a variable to store whether the download is canceled or not
-completed = False #creating a variable to store whether the download is completed or not
 
-def cancel ():
-    global isCanceled , downloadButton , downloading , pauseButton , cancelButton , progressBar , backButton , audioOnly , quality , setAudio , completed
-    isCanceled = True
-    canceleingLabel = CTkLabel(root, text = "Cancelling..." , text_color="yellow" , font=("Times New Roman", 15, "bold") )
-    canceleingLabel.place(x = 215, y = 360)
-    if completed : 
-        canceledLabel = CTkLabel(root, text = "Download Canceled!" , text_color="red" , font=("Times New Roman", 15, "bold") )
-        canceledLabel.place(x = 190, y = 360)
-    progressBar.set(0.0)
-    downloading.destroy()
-    #pauseButton.destroy()
-    progressBar.destroy()
-    #cancelButton.destroy()
-    #downloadButton._state = NORMAL
-    #downloadButton._fg_color = "green"
-    #audioOnly._state = NORMAL
-    #quality.configure(state = NORMAL)
-    #backButton._fg_color = "#146F86"
-    #backButton._state = NORMAL
-    
+
 #creating function which shows the progress of the download
 def on_progress (stream , chunk , bytes_remaining) :
     global progressBar , video
@@ -52,10 +34,8 @@ def on_progress (stream , chunk , bytes_remaining) :
     bytes_downloaded = total_size - bytes_remaining
     percentage_of_comp = bytes_downloaded / total_size *100
     time.sleep(0.3)
-    if progressBar :
-        progressBar.set(float(percentage_of_comp)/100)
-        root.update()
-    
+    progressBar.set(float(percentage_of_comp)/100)
+    root.update()
 
 
 #creating the function which downloads the video
@@ -102,7 +82,7 @@ def Download ():
     quality.configure(state = DISABLED)
     pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
     pauseButton.place(x = 100, y = 440)
-    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15) , width=100 )
+    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15 , "bold") , width=100 )
     cancelButton.place(x = 300, y = 440)
     
     
@@ -155,15 +135,10 @@ def Download ():
 
 #making a thread for download function to avoid overloading        
 def downloadThreading ():
-    global t , isCanceled
     t = threading.Thread(target=Download)
     t.start()
-    if isCanceled :
-        sys.exit()
-        
 
 
-    
 #creating function which selects audio only
 def audio() :
     global quality , setAudio , audioOnly
@@ -209,7 +184,7 @@ def downloadTab():
     
     #creating function which back to the main tab
     def back():
-        global  youtubeLogo , titleLabel ,videoNameLabel , backButton 
+        global  youtubeLogo , titleLabel ,videoNameLabel , backButton , progressBar
         titleLabel.destroy()
         youtubeLogo.destroy()
         videoNameLabel.destroy()
