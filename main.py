@@ -10,6 +10,7 @@ import time
 import threading
 from pathlib import Path
 import shutil
+import sys
 
 
 
@@ -38,9 +39,11 @@ def on_progress (stream , chunk , bytes_remaining) :
     root.update()
 
 
+
+
 #creating the function which downloads the video
 def Download ():
-    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly ,  temp_download_path
+    global yt , quality , path , backButton , progressBar , downloading , video , done , downloadButton , audioOnly ,  temp_download_path 
     
     
     #knowing if user chose to download audio or video
@@ -80,13 +83,8 @@ def Download ():
     downloadButton._fg_color = "grey"
     audioOnly._state = DISABLED
     quality.configure(state = DISABLED)
-    pauseButton = CTkButton(root , text="Pause" , text_color="white" ,fg_color="#E7B918" , font=("Times New Roman", 15, "bold") , width=100 )
-    pauseButton.place(x = 100, y = 440)
-    cancelButton = CTkButton(root , text="Cancel" , text_color="white" ,fg_color="red" , font=("Times New Roman", 15 , "bold") , width=100 )
-    cancelButton.place(x = 300, y = 440)
-    
-    
-    
+      
+       
     #starting the download
     try :
         video.download()
@@ -104,16 +102,16 @@ def Download ():
             os.rename(videoName, new_file)
             shutil.move(new_file, path)    
     
+        #Destroying progressbar after the download is done
+        if progressBar :
+            progressBar.destroy()
     
     #if any error ocuurred while downloading we pop up this message
     except :
         msg.showerror(title = "YouTube Video Downloader ", message = "An error occured (this may be caused due to bad internet connection)")
     
     
-    #destroying pause and cancel buttons when download is completed
-    pauseButton.destroy()
-    cancelButton.destroy()
-    
+        
     #returning donwload , back , quailty and audio buttons to the normal state when download is done
     downloadButton._state = NORMAL
     downloadButton._fg_color = "green"
@@ -121,6 +119,7 @@ def Download ():
     quality.configure(state = NORMAL)
     backButton._fg_color = "#146F86"
     backButton._state = NORMAL
+    
     
     #destroying downloading label and creating done label when download is completed
     downloading.destroy()
@@ -184,7 +183,7 @@ def downloadTab():
     
     #creating function which back to the main tab
     def back():
-        global  youtubeLogo , titleLabel ,videoNameLabel , backButton , progressBar
+        global  youtubeLogo , titleLabel ,videoNameLabel , backButton 
         titleLabel.destroy()
         youtubeLogo.destroy()
         videoNameLabel.destroy()
@@ -192,7 +191,6 @@ def downloadTab():
         audioOnlyText.destroy()
         audioOnly.destroy()
         downloadButton.destroy()
-        progressBar.destroy()
         downloading.destroy()
         done.destroy()
         mainTab()
@@ -202,16 +200,16 @@ def downloadTab():
 
 
 
+    
 #creating function which stores video's link and then redirects to the download tab
 def Entry ():
-    global link , linkEntry , videoName , streams , yt
+    global link , linkEntry , videoName , streams , yt , errorLabel
     link = linkEntry.get()
     if link == "":
         errorLabel = CTkLabel(root, text = "Please enter a link" , text_color="red" , font=("Times New Roman", 17, "bold") )
         errorLabel.place(x=190, y=440)
     elif "www.youtube.com" not in link:
-        blank_label = customtkinter.CTkLabel(root, text="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text_color="#242424")
-        blank_label.place(x=190, y=440)
+        errorLabel.destroy()
         errorLabel = CTkLabel(root, text = "Invalid link" , text_color="red" , font=("Times New Roman", 17, "bold") )
         errorLabel.place(x=218, y=440)
     else :
@@ -242,8 +240,6 @@ def mainTab ():
         linkEntry.place(x=55, y=370)
         downloadButton = customtkinter.CTkButton(root , text="Download" , text_color="white" ,fg_color="green" , command = Entry , font=("Times New Roman", 15, "bold") , width=150 )
         downloadButton.place(x=187, y=490)
-       
-
 
 
 #customizing our root window        
