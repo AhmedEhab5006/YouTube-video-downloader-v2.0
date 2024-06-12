@@ -151,8 +151,6 @@ def audio() :
 #creatung function which creates the download tab
 def downloadTab():
     global linkEntry , youtubeLogo , titleLabel , downloadButton , backButton , videoName , videoNameLabel , streams , quality , setAudio ,audioOnly , audioOnlyText , downloadButton
-    blank_label = customtkinter.CTkLabel(root, text="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", text_color="#242424")
-    blank_label.place(x=190, y=440)
     youtubeLogo.destroy()
     downloadButton.destroy()
     linkEntry.destroy()
